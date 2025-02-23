@@ -61,3 +61,4 @@ A Python script that generates random Solana private keys, checks the associated
 - **Private Key Security**: Never share private keys.
 - **Rate Limiting**: Adjust `REQUEST_DELAY` in `config.json` if needed.
 - **Legality**: Unauthorized access to wallets is illegal. Use responsibly.
+- **Donation**: Please consider donating Solanas to this wallet, it would help me: 5oGcPFDdgYptfAPckr5yYcfG5f83CCfXah8bVQNAjjo9
