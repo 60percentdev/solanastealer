@@ -31,20 +31,20 @@ A Python script that generates random Solana private keys, checks the associated
    ```bash
    pip install base58 pynacl solana solders
 
-1. Update `config.json` with your Solana wallet address and desired `REQUEST_DELAY`:
+3. Update `config.json` with your Solana wallet address and desired `REQUEST_DELAY`:
    ```json
    {
      "YOUR_WALLET": "YOURWALLET",
      "REQUEST_DELAY": 1
    }
 
-2. Run the script:
+4. Run the script:
    ```bash
    python app.py
 
-3. To manually check a private key, input it when prompted. Results are saved in `output_command.txt`.
+5. To manually check a private key, input it when prompted. Results are saved in `output_command.txt`.
 
-4. Press `Ctrl+C` to stop the script.
+6. Press `Ctrl+C` to stop the script.
 
 ---
 
