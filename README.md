@@ -36,7 +36,7 @@ A Python script that generates random Solana private keys, checks the associated
 1. Update `config.json` with your Solana wallet address and desired `REQUEST_DELAY`:
    ```json
    {
-     "YOUR_WALLET": "8Y7zQZ9pXy3T2w1vR4sD6fGhJkLmNqW2e",
+     "YOUR_WALLET": "YOURWALLET",
      "REQUEST_DELAY": 1
    }
 
