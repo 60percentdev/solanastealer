@@ -31,8 +31,6 @@ A Python script that generates random Solana private keys, checks the associated
    ```bash
    pip install base58 pynacl solana solders
 
-   ## Usage
-
 1. Update `config.json` with your Solana wallet address and desired `REQUEST_DELAY`:
    ```json
    {
