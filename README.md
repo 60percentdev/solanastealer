@@ -44,8 +44,6 @@ A Python script that generates random Solana private keys, checks the associated
 
 5. To manually check a private key, input it when prompted. Results are saved in `output_command.txt`.
 
-6. Press `Ctrl+C` to stop the script.
-
 ---
 
 ## Files
