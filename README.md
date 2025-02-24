@@ -31,14 +31,15 @@ A Python script that generates random Solana private keys, checks the associated
    ```bash
    pip install base58 pynacl solana solders
 
-3. Update `config.json` with your Solana wallet address and desired `REQUEST_DELAY`:
+3. Update `config.json` with your Solana wallet address and desired `REQUEST_DELAY`
+   Consider using a good RPC server that is able to handle your configuration to avoid 403 Errors or RPC errors. Helius is quite a good option! Default from config is not very good:
    ```json
    {
      "YOUR_WALLET": "YOURWALLET",
      "REQUEST_DELAY": 0.5,
      "RPC_RETRIES": 5,
      "RPC_RETRY_DELAY": 3,
-     "RPC_SERVER": "https://api.mainnet-beta.solana.com" // consider using a good RPC server that is able to handle your configuration to avoid 403 Errors or RPC errors. Helius is quite a good option! Default from config is not very good.
+     "RPC_SERVER": "https://api.mainnet-beta.solana.com" 
    }
 
 4. Run the script:
