@@ -1,3 +1,5 @@
 solana
 base58
 pynacl
+solana.publickey
+cachetools
