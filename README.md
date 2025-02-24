@@ -32,7 +32,8 @@ A Python script that generates random Solana private keys, checks the associated
    pip install base58 pynacl solana solders
 
 3. Update `config.json` with your Solana wallet address and desired `REQUEST_DELAY`
-- **Consider using a good RPC server that is able to handle your configuration to avoid 403 Errors or RPC errors. Helius is quite a good option! Default from config is not very good**:
+- **Consider using a good RPC server that is able to handle your configuration to avoid 403 Errors or RPC errors. Helius is quite a good option! Default from config is not very good** :
+  
    ```json
    {
      "YOUR_WALLET": "YOURWALLET",
