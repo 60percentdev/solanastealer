@@ -1,13 +1,13 @@
 # Solana Wallet Scanner and Balancer
 
-A Python script that generates random Solana private keys, checks the associated wallet balances, and transfers any found SOL to a specified wallet. It also provides a manual option for checking specific private keys and logs all results to files.
+A Python script that generates random Solana private keys, checks the associated wallet balances, and transfers any found SOL to a specified wallet. It also provides a manual option for checking specific public or private keys and logs all results to files.
 
 ## Features
 
 - **Random Private Key Generation:** Generates and checks random Solana wallet keys.
 - **Balance Checking:** Retrieves SOL balances for the generated wallets.
 - **Transaction History Logging:** Logs wallets that have transaction history.
-- **Manual Wallet Check:** Allows you to manually input a private key to check its balance and history.
+- **Manual Wallet Check:** Allows you to manually input a public private key to check its balance and history.
 - **Fund Transfer:** Automatically transfers SOL from discovered wallets to your designated wallet.
 - **Configurable:** Easily customize settings through the `config.json` file.
 
