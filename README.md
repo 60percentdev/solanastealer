@@ -18,6 +18,8 @@ A Python script that generates random Solana private keys, checks the associated
   - `base58`
   - `pynacl`
   - `solana`
+  - `solana.publickey`
+  - `cachetools`
 
 ## Installation
 
