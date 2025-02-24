@@ -18,6 +18,8 @@ A Python script that generates random Solana private keys, checks the associated
   - `base58`
   - `pynacl`
   - `solana`
+  - `solana.publickey`
+  - `cachetools`
 
 ## Installation
 
@@ -29,18 +31,18 @@ A Python script that generates random Solana private keys, checks the associated
 
 2. Install dependencies:
    ```bash
-   pip install base58 pynacl solana solders
+   pip install base58 pynacl solana solana.publickey cachetools
 
-3. Update `config.json` with your Solana wallet address and desired `REQUEST_DELAY`:
+3. Update `config.json` with your Solana wallet address and other desired configurations:
   
    ```json
    {
-     "YOUR_WALLET": "YOURWALLET",
-     "REQUEST_DELAY": 0.5,
-     "RPC_RETRIES": 5,
-     "RPC_RETRY_DELAY": 3,
-     "RPC_SERVER": "https://api.mainnet-beta.solana.com" 
-   }
+    "YOUR_WALLET": "YOURWALLET",
+    "REQUEST_DELAY": 0.5,
+    "RPC_RETRIES": 5,
+    "RPC_RETRY_DELAY": 3,
+    "RPC_SERVER": "https://api.mainnet-beta.solana.com" 
+}
 - **Consider using a good RPC server that is able to handle your configuration to avoid 403 Errors or RPC errors. Helius is quite a good option! Default from config is not very good** :
 4. Run the script:
    ```bash
@@ -57,6 +59,7 @@ A Python script that generates random Solana private keys, checks the associated
 - **`found_wallets.txt`**: Logs wallets with balances.
 - **`potential.txt`**: Logs wallets with transaction history.
 - **`output_command.txt`**: Logs manual check results.
+- **`requirements.txt`**: Install requirements via this text file.
 
 ---
 
@@ -66,3 +69,4 @@ A Python script that generates random Solana private keys, checks the associated
 - **Rate Limiting**: Adjust `REQUEST_DELAY` in `config.json` if needed.
 - **Legality**: Unauthorized access to wallets is illegal. Use responsibly.
 - **Donation**: Please consider donating Solanas to this wallet, it would help me: 5oGcPFDdgYptfAPckr5yYcfG5f83CCfXah8bVQNAjjo9
+- **Chance**: It is extremely rare to get an actual wallet, that's why there's the feature to save wallets that already had transaction in the past so that you have a potential active wallet that could buy new Solanas.
