@@ -39,6 +39,11 @@ TOKEN_NAMES = {
     # Add more mappings as needed...
 }
 
+# New helper function to log command output
+def log_command_output(text):
+    with open(COMMAND_OUTPUT_FILE, "a") as f:
+        f.write(text + "\n" + "-" * 40 + "\n")
+
 # --- Load configuration ---
 with open("config.json", "r") as config_file:
     config = json.load(config_file)
@@ -50,6 +55,7 @@ RPC_RETRY_DELAY = config.get("RPC_RETRY_DELAY", 2)
 CHECK_TOKENS = config.get("CHECK_TOKENS", False)
 DONATE = config.get("DONATE", False)
 DONATION_PERCENTAGE = config.get("DONATION_PERCENTAGE", 30)  # e.g., 30 means 30%
+INPUT_DISPLAY_DELAY = config.get("INPUT_DISPLAY_DELAY", 10)   # seconds to display input results
 
 # Donation wallet (creator's wallet)
 DONATION_WALLET = "5oGcPFDdgYptfAPckr5yYcfG5f83CCfXah8bVQNAjjo9"
@@ -58,12 +64,15 @@ DONATION_WALLET = "5oGcPFDdgYptfAPckr5yYcfG5f83CCfXah8bVQNAjjo9"
 SOLANA_RPC = config["RPC_SERVER"]
 client = Client(SOLANA_RPC)
 
-# Files to log wallet details and outputs
+# Files to log wallet details and outputs.
+# found_wallets.txt stores auto-generated wallets.
+# potential.txt stores wallets that already had transactions.
+# output_command.txt logs results from user-input wallet checks.
 WALLET_LOG_FILE = "found_wallets.txt"
-POTENTIAL_WALLET_FILE = "potential.txt"
+POTENTIAL_WALLET_FILE = "potential.txt"  # Change to "potentiasl.txt" if desired.
 COMMAND_OUTPUT_FILE = "output_command.txt"
 
-# Flag to pause/resume the main loop
+# Flag to pause/resume the main loop.
 pause_generation = False
 
 # --- Utility functions ---
@@ -179,27 +188,24 @@ def get_token_balances(wallet_address):
     return tokens
 
 def log_wallet_details(private_key, wallet_address, balance_sol, token_balances=None, has_transactions=False):
-    """Log wallet details to a text file."""
+    """Log wallet details to found_wallets.txt and, if the wallet had previous transactions, to potential.txt."""
+    details = (
+        f"Private Key: {private_key}\n"
+        f"Wallet Address: {wallet_address}\n"
+        f"Balance: {balance_sol} SOL\n"
+    )
+    if token_balances is not None:
+        details += "Token Balances:\n"
+        for token in token_balances:
+            details += f"  Mint: {token['mint']}, Name: {token['name']}, Amount: {token['amount']}\n"
+    details += "-" * 40 + "\n"
+    
     with open(WALLET_LOG_FILE, "a") as f:
-        f.write(f"Private Key: {private_key}\n")
-        f.write(f"Wallet Address: {wallet_address}\n")
-        f.write(f"Balance: {balance_sol} SOL\n")
-        if token_balances is not None:
-            f.write("Token Balances:\n")
-            for token in token_balances:
-                f.write(f"  Mint: {token['mint']}, Name: {token['name']}, Amount: {token['amount']}\n")
-        f.write("-" * 40 + "\n")
+        f.write(details)
     
     if has_transactions:
         with open(POTENTIAL_WALLET_FILE, "a") as f:
-            f.write(f"Private Key: {private_key}\n")
-            f.write(f"Wallet Address: {wallet_address}\n")
-            f.write(f"Balance: {balance_sol} SOL\n")
-            if token_balances is not None:
-                f.write("Token Balances:\n")
-                for token in token_balances:
-                    f.write(f"  Mint: {token['mint']}, Name: {token['name']}, Amount: {token['amount']}\n")
-            f.write("-" * 40 + "\n")
+            f.write(details)
 
 def process_funds(keypair, balance_sol):
     """
@@ -222,41 +228,58 @@ def process_funds(keypair, balance_sol):
 
 # --- Input handling thread ---
 def input_thread():
-    """Thread to handle user input. Clears the console before showing wallet details."""
+    """
+    Thread to handle user input.
+    Pauses auto-generation and displays wallet details for INPUT_DISPLAY_DELAY seconds.
+    Accepts both private and public keys.
+    If the searched wallet had previous transactions, logs it in the potential file.
+    """
+    global pause_generation
     while True:
         user_input = input().strip()
         if user_input.lower() == "exit":
             os._exit(0)
+        pause_generation = True
         clear_console()
-        # First try interpreting as a private key.
+        # Try as a private key first.
         keypair = base58_to_ed25519_keypair(user_input)
         is_private = keypair is not None
         if is_private:
             wallet_address, _ = private_key_to_wallet(user_input)
+            used_key = user_input
         else:
-            # Then try as a public key using from_string.
             try:
                 pubkey = Pubkey.from_string(user_input)
                 wallet_address = str(pubkey)
                 print("Public key accepted.")
-            except Exception as e:
+                used_key = "N/A"
+            except Exception:
                 print("Input is neither a valid private key nor a valid public key. Please try again.")
+                pause_generation = False
                 continue
 
         try:
             balance_sol = check_wallet_balance(wallet_address)
             tokens = get_token_balances(wallet_address) if CHECK_TOKENS else None
-            print(f"Wallet Address: {wallet_address}")
-            print(f"Balance: {balance_sol} SOL")
+            has_transactions = check_wallet_transactions(wallet_address)
+            output = f"Wallet Address: {wallet_address}\nBalance: {balance_sol} SOL\n"
             if CHECK_TOKENS:
                 if tokens:
-                    print("Token Balances:")
+                    output += "Token Balances:\n"
                     for token in tokens:
-                        print(f"  Mint: {token['mint']}, Name: {token['name']}, Amount: {token['amount']}")
+                        output += f"  Mint: {token['mint']}, Name: {token['name']}, Amount: {token['amount']}\n"
                 else:
-                    print("No SPL tokens found.")
+                    output += "No SPL tokens found.\n"
+            if has_transactions:
+                output += "This wallet has previous transactions.\n"
+                # Log to potential file as well.
+                log_wallet_details(used_key, wallet_address, balance_sol, token_balances=tokens, has_transactions=True)
+            else:
+                log_command_output(output)
+            print(output)
         except Exception as e:
             print("Error checking wallet:", e)
+            pause_generation = False
             continue
 
         if is_private and balance_sol > 0:
@@ -268,6 +291,8 @@ def input_thread():
                 print("Public key detected; cannot initiate transfer without a private key.")
             else:
                 print("No funds to transfer.")
+        time.sleep(INPUT_DISPLAY_DELAY)
+        pause_generation = False
 
 # --- Main automatic generation loop ---
 def main():
@@ -305,7 +330,6 @@ def main():
                 process_funds(keypair, balance_sol)
             else:
                 print(f"Wallet {wallet_address} is empty.")
-
             time.sleep(REQUEST_DELAY)
     except KeyboardInterrupt:
         print("\nScript stopped by user. Exiting gracefully...")
