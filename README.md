@@ -46,7 +46,7 @@ A Python script that generates random Solana private keys, checks the associated
    ```bash
    python app.py
 
-5. To manually check a private key, input it when prompted. Results are saved in `output_command.txt`.
+5. To manually check a private key, input the private key. Results are saved in `output_command.txt`.
 
 ---
 
