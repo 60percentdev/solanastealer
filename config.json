@@ -1,4 +1,7 @@
 {
-  "YOUR_WALLET": "",
-  "REQUEST_DELAY": 0.05
+  "YOUR_WALLET": "YOURWALLET",
+  "REQUEST_DELAY": 0.5,
+  "RPC_RETRIES": 5,
+  "RPC_RETRY_DELAY": 3,
+  "RPC_SERVER": "https://api.mainnet-beta.solana.com" 
 }
