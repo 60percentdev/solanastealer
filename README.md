@@ -26,7 +26,7 @@ A Python script that generates random Solana private keys, checks the associated
 1. **Clone the Repository:**
 
    ```bash
-   git clone https://github.com/60percentdev/solanastealer/solana-wallet-scanner.git
+   git clone https://github.com/60percentdev/solanastealer/solanastealer.git
    cd solanastealer
 
 2. Install dependencies:
