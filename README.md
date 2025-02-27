@@ -31,7 +31,7 @@ A Python script that generates random Solana private keys, checks the associated
 
 2. Install dependencies:
    ```bash
-   pip install base58 pynacl solana solders
+   pip install base58 pynacl solana solana.publickey cachetools
 
 3. Update `config.json` with your Solana wallet address and desired `REQUEST_DELAY`:
   
